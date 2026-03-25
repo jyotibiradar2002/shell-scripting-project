@@ -1,59 +1,59 @@
 #!/bin/bash
 
-#########################
-Author : Jyoti
-date : 22 march 
-purpose : disply the who has access of repository 
-version : 1
-#########################
-helper()
+##########################
+# Author : Jyoti
+# Date : 22 March
+# Purpose : Display who has access to repository
+# Version : 1
+##########################
 
-# GitHub API URL
-API_URL="https://api.github.com"
+# GitHub URL
+api_url="https://api.github.com"
 
-# GitHub username and personal access token
-USERNAME=$username
-TOKEN=$token
+# GitHub credentials (export before running)
+username="$username"
+token="$token"
 
-# User and Repository information
-REPO_OWNER=$1
-REPO_NAME=$2
+# User and repository info
+repo_owner="$1"
+repo_name="$2"
 
-# Function to make a GET request to the GitHub API
-function github_api_get {
-    local endpoint="$1"
-    local url="${API_URL}/${endpoint}"
+# Helper function
+helper() {
+    expected_cmd_arg=2
 
-    # Send a GET request to the GitHub API with authentication
-    curl -s -u "${USERNAME}:${TOKEN}" "$url"
+    if [ $# -ne $expected_cmd_arg ]; then
+        echo "Usage: $0 <repo_owner> <repo_name>"
+        exit 1
+    fi
 }
 
-# Function to list users with read access to the repository
-function list_users_with_read_access {
-    local endpoint="repos/${REPO_OWNER}/${REPO_NAME}/collaborators"
+# Function to call GitHub API
+github_api_get() {
+    local endpoint="$1"
+    local url="${api_url}/${endpoint}"
 
-    # Fetch the list of collaborators on the repository
-    collaborators="$(github_api_get "$endpoint" | jq -r '.[] | select(.permissions.pull == true) | .login')"
+    curl -s -u "${username}:${token}" "${url}"
+}
 
-    # Display the list of collaborators with read access
-    if [[ -z "$collaborators" ]]; then
-        echo "No users with read access found for ${REPO_OWNER}/${REPO_NAME}."
+# Function to list users
+list_user_with_read_access() {
+    local endpoint="repos/${repo_owner}/${repo_name}/collaborators"
+
+    collaborators=$(github_api_get "$endpoint" | jq -r '.[]? | select(.permissions.pull == true) | .login')
+
+    if [ -z "$collaborators" ]; then
+        echo "No users with read access found for ${repo_owner}/${repo_name}"
     else
-        echo "Users with read access to ${REPO_OWNER}/${REPO_NAME}:"
+        echo "Users with read access for ${repo_owner}/${repo_name}:"
         echo "$collaborators"
     fi
 }
 
-function helper() {
-    expected_cmd_args=2
-    if [ $# -ne $expected_cmd_args ]; then
-    echo "Please execute the script with required cmd args"
-    exit 1
-}
-
+# Call helper FIRST
 helper "$@"
 
-# Main script
+# Main
+echo "Fetching users with read access for ${repo_owner}/${repo_name}..."
 
-echo "Listing users with read access to ${REPO_OWNER}/${REPO_NAME}..."
-list_users_with_read_access
+list_user_with_read_access
